@@ -27,7 +27,7 @@ defmodule Kvasir.HTTP.SSE do
 
     stream =
       topic
-      |> adapter.stream(from: offset)
+      |> adapter.stream(from: offset, endless: true)
       |> EventStream.start(pid: self())
 
     {:ok, conn, %{offset: (offset || %{partitions: %{}}).partitions, stream: stream}}
