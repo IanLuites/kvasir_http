@@ -14,6 +14,7 @@ defmodule Kvasir.HTTP.Spec do
       {c.__command__(:type),
        add_generic(
          %{
+           emits: Enum.map(c.__command__(:emits), & &1.__event__(:type)),
            fields:
              :fields
              |> c.__command__()
