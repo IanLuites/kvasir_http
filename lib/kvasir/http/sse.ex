@@ -10,6 +10,7 @@ defmodule Kvasir.HTTP.SSE do
     conn =
       conn
       |> Conn.put_resp_header("server", "Kvasir")
+      |> Conn.put_resp_header("X-Accel-Buffering", "no")
       |> Conn.put_resp_header("access-control-allow-origin", "*")
       |> Conn.fetch_query_params()
 
