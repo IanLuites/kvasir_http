@@ -26,19 +26,25 @@ defmodule Kvasir.HTTP.SSE do
         end)
       end
 
+    only = if o = conn.query_params["only"], do: String.split(o, ",", trim: true)
+
     me = self()
 
     stream =
       if offset do
         topic
-        |> adapter.stream(from: offset, endless: true)
+        |> adapter.stream(from: offset, endless: true, only: only)
         |> EventStream.start(pid: me)
       else
         {:ok, s} =
-          adapter.listen(topic, fn e ->
-            send(me, {:event, e})
-            :ok
-          end)
+          adapter.listen(
+            topic,
+            fn e ->
+              send(me, {:event, e})
+              :ok
+            end,
+            only: only
+          )
 
         s
       end
