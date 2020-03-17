@@ -1,17 +1,41 @@
 defmodule Kvasir.HTTP do
   def child_spec(opts \\ []) do
-    opts
-    |> Keyword.drop(~w(name pages)a)
-    |> Keyword.put(:plug, compile_router(opts))
-    |> Buckaroo.child_spec()
+    name = opts[:name] || "Auto#{Enum.random(0..10)}"
+    scan = __MODULE__.Scanner.scan(opts)
+
+    router =
+      opts
+      |> Keyword.drop(~w(assets name pages)a)
+      |> Keyword.put(:plug, compile_router(name, scan, opts))
+      |> Buckaroo.child_spec()
+
+    callback =
+      if cb = opts[:metrics] do
+        fn a, b, c, d ->
+          Kvasir.HTTP.Architecture.metric(a, b, c, d)
+          cb.(a, b, c, d)
+        end
+      else
+        &Kvasir.HTTP.Architecture.metric/4
+      end
+
+    children = [
+      Kvasir.HTTP.Architecture,
+      Kvasir.Metrics.Sink.child_spec(callback: callback),
+      router
+    ]
+
+    opts = [strategy: :one_for_one]
+
+    %{
+      id: name,
+      start: {Supervisor, :start_link, [children, opts]}
+    }
   end
 
-  defp compile_router(opts) do
+  defp compile_router(name, scan, opts) do
     priv = Application.app_dir(:kvasir_http, "priv")
-
-    name = opts[:name] || "Auto#{Enum.random(0..10)}"
     router = Module.concat(Kvasir.HTTP.Router, name)
-    scan = __MODULE__.Scanner.scan(opts)
     doc_spec = __MODULE__.Spec.build(scan)
 
     page = File.read!(Path.join([priv, "web", "index.html"]))
@@ -39,6 +63,14 @@ defmodule Kvasir.HTTP do
       plug :dispatch
 
     #{sse(scan.sources)}
+
+      get "/api/v1/architecture" do
+        conn
+        |> put_resp_content_type("application/json")
+        |> put_resp_header("server", "Kvasir")
+        |> put_resp_header("access-control-allow-origin", "*")
+        |> send_resp(200, Jason.encode!(Agent.get(Kvasir.HTTP.Architecture, & &1)))
+      end
 
       get "/api/v1/pages" do
         conn
