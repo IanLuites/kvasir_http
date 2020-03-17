@@ -54,11 +54,19 @@ defmodule Kvasir.HTTP do
         {title, opts} -> __MODULE__.Page.parse(opts[:content], Keyword.put(opts, :title, title))
       end)
 
+    assets =
+      if a = opts[:assets] do
+        """
+          plug Plug.Static, at: "#{a[:path]}", from: #{inspect(a[:from])}
+        """
+      end
+
     router_code = """
     defmodule #{inspect(router)} do
       use Buckaroo.Router
       import Plug.Conn
 
+      #{assets}
       plug :match
       plug :dispatch
 
