@@ -55,7 +55,7 @@ defmodule Kvasir.HTTP.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:buckaroo, "~> 0.2"},
+      {:buckaroo, "~> 0.3"},
       {:earmark, "~> 1.4"},
       {:kvasir, git: "https://github.com/IanLuites/kvasir", branch: "release/v1.0"}
     ]
